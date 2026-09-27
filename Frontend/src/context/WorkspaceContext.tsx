@@ -33,7 +33,13 @@ interface WorkspaceContextValue {
   previews: Record<string, string>
   openReportForm: (reportId: string | 'new' | null) => void
   reportFormId: string | 'new' | null
-  createReport: (input: ReportDraft) => SafetyReport
+  openReportView: (reportId: string | null) => void
+  viewReportId: string | null
+  openReviewView: (reviewId: string | null) => void
+  viewReviewId: string | null
+  openEventView: (eventId: string | null) => void
+  viewEventId: string | null
+  createReport: (input: ReportDraft) => Promise<SafetyReport>
   updateReport: (id: string, input: ReportDraft) => void
   deleteReport: (id: string) => void
   addHazard: (input: HazardDraft) => void
@@ -41,7 +47,7 @@ interface WorkspaceContextValue {
   addExposure: (input: ExposureDraft) => void
   deleteRecord: (collection: 'hazards' | 'barriers' | 'exposures' | 'videos', id: string) => void
   addVideo: (file: File, input: { camera: string; location: string; reportId: string }) => CctvVideo
-  submitReview: (input: { reportId: string; decision: 'approved' | 'rejected'; comments: string }) => SafetyEvent | null
+  submitReview: (input: { reportId: string; decision: 'approved' | 'rejected'; comments: string }) => Promise<SafetyEvent | null>
   markNotificationsRead: () => void
 }
 
@@ -59,6 +65,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<WorkspaceData | null>(null)
   const [previews, setPreviews] = useState<Record<string, string>>({})
   const [reportFormId, setReportFormId] = useState<string | 'new' | null>(null)
+  const [viewReportId, setViewReportId] = useState<string | null>(null)
+  const [viewReviewId, setViewReviewId] = useState<string | null>(null)
+  const [viewEventId, setViewEventId] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -77,9 +86,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }
   }, [attempt])
 
-  const createReport = useCallback((input: ReportDraft) => {
+  const createReport = useCallback(async (input: ReportDraft) => {
     const now = new Date().toISOString()
     let created!: SafetyReport
+    try {
+      await import('@/services/api').then(m => m.createReportApi(input));
+    } catch (e) {
+      console.warn('Backend not available, creating locally only');
+    }
+    
     setData((current) => {
       if (!current) return current
       const result = applyCreateReport(current, input, now, currentUser)
@@ -150,9 +165,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const submitReview = useCallback(
-    (input: { reportId: string; decision: 'approved' | 'rejected'; comments: string }) => {
+    async (input: { reportId: string; decision: 'approved' | 'rejected'; comments: string }) => {
       const now = new Date().toISOString()
       let event: SafetyEvent | null = null
+      
+      try {
+        await import('@/services/api').then(m => m.submitReview(input.reportId, input));
+      } catch (e) {
+        console.warn('Backend not available, reviewing locally only');
+      }
+
       setData((current) => {
         if (!current) return current
         const result = applyReview(current, input, now, currentUser)
@@ -176,6 +198,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       previews,
       openReportForm: setReportFormId,
       reportFormId,
+      openReportView: setViewReportId,
+      viewReportId,
+      openReviewView: setViewReviewId,
+      viewReviewId,
+      openEventView: setViewEventId,
+      viewEventId,
       createReport,
       updateReport,
       deleteReport,
@@ -192,6 +220,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       data,
       previews,
       reportFormId,
+      viewReportId,
+      viewReviewId,
+      viewEventId,
       createReport,
       updateReport,
       deleteReport,

@@ -2,6 +2,9 @@ import { Suspense, useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import { Toaster } from 'sonner'
 import { CreateReportModal } from '@/features/reports/CreateReportModal'
+import { ReportDetailModal } from '@/features/reports/ReportDetailModal'
+import { ReviewDetailModal } from '@/features/reviews/ReviewDetailModal'
+import { SafetyEventDetailModal } from '@/features/safety-events/SafetyEventDetailModal'
 import { Header } from '@/components/layout/Header'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { ErrorState } from '@/components/ui/ErrorState'
@@ -63,6 +66,9 @@ export function MainLayout() {
         </main>
       </div>
       <CreateReportModal />
+      <ReportDetailModal />
+      <ReviewDetailModal />
+      <SafetyEventDetailModal />
       <Toaster
         theme="light"
         position="bottom-right"

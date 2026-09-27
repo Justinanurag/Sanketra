@@ -15,7 +15,7 @@ import { labelOf } from '@/constants/labels'
 import type { CctvEvent, CctvVideo } from '@/types/domain'
 
 export function CctvPage() {
-  const { data, previews, deleteRecord } = useWorkspace()
+  const { data, previews, deleteRecord, openReportView } = useWorkspace()
   const [open, setOpen] = useState(false)
   const [selectedId, setSelectedId] = useState(data?.videos[0]?.id ?? '')
   if (!data) return null
@@ -29,7 +29,11 @@ export function CctvPage() {
     { id: 'location', header: 'Location', render: (row) => row.location },
     { id: 'status', header: 'Status', render: (row) => <StatusBadge domain="video" value={row.status} /> },
     { id: 'kind', header: 'Kind', render: (row) => labelOf(row.mediaKind) },
-    { id: 'report', header: 'Report', render: (row) => row.reportId ? <Link to={`/reports/${row.reportId}`}>{row.reportId}</Link> : '—' },
+    { id: 'report', header: 'Report', render: (row) => row.reportId ? (
+      <button type="button" className="mono" style={{ background: 'transparent', border: 0, padding: 0, color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }} onClick={(e) => { e.stopPropagation(); openReportView(row.reportId!); }}>
+        {row.reportId}
+      </button>
+    ) : '—' },
     { id: 'when', header: 'Uploaded', sortValue: (row) => row.uploadedAt, render: (row) => formatDateTime(row.uploadedAt) },
   ]
 

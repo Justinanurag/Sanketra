@@ -17,7 +17,7 @@ import { barrierConditions, reportTypes, reviewStatuses, sifPotentials, type Saf
 
 export function ReportsPage() {
   const navigate = useNavigate()
-  const { data, openReportForm, deleteReport } = useWorkspace()
+  const { data, openReportForm, deleteReport, openReportView, openReviewView } = useWorkspace()
   const [query, setQuery] = useState('')
   const [type, setType] = useState('all')
   const [sif, setSif] = useState('all')
@@ -53,7 +53,11 @@ export function ReportsPage() {
   }
 
   const columns: Column<SafetyReport>[] = [
-    { id: 'id', header: 'Report', width: '140px', sortValue: (row) => row.id, render: (row) => <span className="mono">{row.id}</span> },
+    { id: 'id', header: 'Report', width: '140px', sortValue: (row) => row.id, render: (row) => (
+      <button type="button" className="mono" style={{ background: 'transparent', border: 0, padding: 0, color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }} onClick={(e) => { e.stopPropagation(); openReportView(row.id); }}>
+        {row.id}
+      </button>
+    )},
     { id: 'title', header: 'Title', sortValue: (row) => row.title, render: (row) => <span className="row-title">{row.title}</span> },
     { id: 'reporter', header: 'Reporter', sortValue: (row) => row.reporter, render: (row) => row.reporter },
     { id: 'hazard', header: 'Hazard', sortValue: (row) => row.hazardName, render: (row) => row.hazardName },
@@ -74,9 +78,9 @@ export function ReportsPage() {
               </button>
             )}
           >
-            <DropdownItem onSelect={() => navigate(`/reports/${row.id}`)}>View</DropdownItem>
+            <DropdownItem onSelect={() => openReportView(row.id)}>View</DropdownItem>
             <DropdownItem onSelect={() => openReportForm(row.id)}>Edit</DropdownItem>
-            <DropdownItem onSelect={() => navigate(`/reviews/${row.id}`)}>Review</DropdownItem>
+            <DropdownItem onSelect={() => openReviewView(row.id)}>Review</DropdownItem>
             <DropdownItem danger onSelect={() => void onDelete(row)}>Delete</DropdownItem>
           </Dropdown>
         </span>
@@ -127,7 +131,7 @@ export function ReportsPage() {
           selectable
           selectedIds={selected}
           onSelectedIdsChange={setSelected}
-          onRowClick={(row) => navigate(`/reports/${row.id}`)}
+          onRowClick={(row) => openReportView(row.id)}
           label="Safety reports"
           emptyTitle="No safety reports found"
           emptyDescription="Nothing in the register matches these filters."

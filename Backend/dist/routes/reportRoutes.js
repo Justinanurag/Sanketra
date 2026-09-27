@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const reportController_1 = require("../controllers/reportController");
+const router = (0, express_1.Router)();
+router.post('/', reportController_1.createReport);
+router.get('/', reportController_1.getReports);
+router.get('/:id', reportController_1.getReportById);
+router.post('/:id/analyze', reportController_1.analyzeReport);
+exports.default = router;

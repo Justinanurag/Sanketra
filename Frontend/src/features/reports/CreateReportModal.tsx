@@ -76,7 +76,7 @@ export function CreateReportModal() {
         openReportForm(null)
         return
       }
-      const report = createReport(values)
+      const report = await createReport(values)
       toast.success('Report created', { description: report.id })
       openReportForm(null)
       navigate(`/reports/${report.id}`)

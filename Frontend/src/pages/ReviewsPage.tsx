@@ -22,7 +22,7 @@ import type { SafetyReport } from '@/types/domain'
 
 export function ReviewsPage() {
   const navigate = useNavigate()
-  const { data } = useWorkspace()
+  const { data, openReportView } = useWorkspace()
   const [queue, setQueue] = useState('open')
   const rows = useMemo(() => {
     const reports = data?.reports ?? []
@@ -32,7 +32,11 @@ export function ReviewsPage() {
   if (!data) return null
 
   const columns: Column<SafetyReport>[] = [
-    { id: 'id', header: 'Report', sortValue: (row) => row.id, render: (row) => <span className="mono">{row.id}</span> },
+    { id: 'id', header: 'Report', sortValue: (row) => row.id, render: (row) => (
+      <button type="button" className="mono" style={{ background: 'transparent', border: 0, padding: 0, color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }} onClick={(e) => { e.stopPropagation(); openReportView(row.id); }}>
+        {row.id}
+      </button>
+    )},
     { id: 'title', header: 'Title', sortValue: (row) => row.title, render: (row) => <span className="row-title">{row.title}</span> },
     { id: 'sif', header: 'Rule result', render: (row) => <StatusBadge domain="sif" value={row.sifPotential} /> },
     { id: 'review', header: 'Review', render: (row) => <StatusBadge domain="review" value={row.reviewStatus} /> },
@@ -56,7 +60,7 @@ export function ReviewsPage() {
           columns={columns}
           rows={rows}
           getRowId={(row) => row.id}
-          onRowClick={(row) => navigate(`/reviews/${row.id}`)}
+          onRowClick={(row) => openReviewView(row.id)}
           label="Review queue"
           emptyTitle={queue === 'open' ? 'No open reviews' : 'No decisions recorded'}
           emptyDescription={queue === 'open' ? 'Every report in the register has a recorded decision.' : 'Approved and rejected reports will appear here.'}
@@ -67,8 +71,7 @@ export function ReviewsPage() {
   )
 }
 
-export function ReviewDetailPage() {
-  const { reportId = '' } = useParams()
+export function ReviewDetailView({ reportId, onClose }: { reportId: string, onClose?: () => void }) {
   const navigate = useNavigate()
   const { data, submitReview, openReportForm } = useWorkspace()
   const report = data?.reports.find((item) => item.id === reportId)
@@ -83,7 +86,7 @@ export function ReviewDetailPage() {
 
   if (!data) return null
   if (!report) {
-    return <EmptyState title="Report not found" description="That review is not in the queue." action={<Link className="btn btn-secondary" to="/reviews">Back to reviews</Link>} />
+    return <EmptyState title="Report not found" description="That review is not in the queue." action={onClose ? <Button onClick={onClose}>Close view</Button> : <Link className="btn btn-secondary" to="/reviews">Back to reviews</Link>} />
   }
 
   const locked = !!latest && !revising
@@ -95,9 +98,10 @@ export function ReviewDetailPage() {
       confirmText: 'Approve',
     })
     if (!confirmed || !report) return
-    const created = submitReview({ reportId: report.id, decision: 'approved', comments: values.comments })
+    const created = await submitReview({ reportId: report.id, decision: 'approved', comments: values.comments })
     if (!created) return
     toast.success('Safety event approved', { description: created.id })
+    if (onClose) onClose()
     navigate(`/safety-events/${created.id}`)
   }
 
@@ -110,9 +114,10 @@ export function ReviewDetailPage() {
       defaultValue: getValues('comments'),
     })
     if (!reason) return
-    const created = submitReview({ reportId: report.id, decision: 'rejected', comments: reason })
+    const created = await submitReview({ reportId: report.id, decision: 'rejected', comments: reason })
     if (!created) return
     toast.success('Decision recorded', { description: `${report.id} rejected` })
+    if (onClose) onClose()
     navigate(`/safety-events/${created.id}`)
   }
 
@@ -121,7 +126,7 @@ export function ReviewDetailPage() {
       <PageHeader
         title="Safety officer review"
         description={`${report.id} · ${report.title}`}
-        actions={<Link className="btn btn-secondary" to={`/reports/${report.id}`}>Open full report</Link>}
+        actions={<Button variant="secondary" onClick={() => { if (onClose) onClose(); navigate(`/reports/${report.id}`); }}>Open full report</Button>}
       />
       <Callout tone="critical" title="AI-assisted analysis is not the decision">
         You are looking at a rule result plus the evidence that supports it. Approve, edit, or reject before a safety event exists.
@@ -182,7 +187,7 @@ export function ReviewDetailPage() {
                   { label: 'Comments', value: latest.comments },
                 ]}
               />
-              {event ? <Link to={`/safety-events/${event.id}`}>Open {event.id}</Link> : null}
+              {event ? <Button variant="ghost" onClick={() => { if (onClose) onClose(); navigate(`/safety-events/${event.id}`); }}>Open {event.id}</Button> : null}
               <Button variant="secondary" onClick={() => setRevising(true)}>Record a revised decision</Button>
             </div>
           ) : (
@@ -201,4 +206,9 @@ export function ReviewDetailPage() {
       </div>
     </div>
   )
+}
+
+export function ReviewDetailPage() {
+  const { reportId = '' } = useParams()
+  return <ReviewDetailView reportId={reportId} />
 }

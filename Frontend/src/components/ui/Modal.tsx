@@ -17,7 +17,8 @@ export function Modal({
   onClose: () => void
   children: ReactNode
   footer?: ReactNode
-  size?: 'md' | 'lg'
+  size?: 'md' | 'lg' | 'xl'
+  hideHeader?: boolean
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const titleId = useId()
@@ -63,21 +64,27 @@ export function Modal({
     <div className="modal-backdrop" onMouseDown={onClose}>
       <div
         ref={ref}
-        className={cx('modal', size === 'lg' && 'modal-lg')}
+        className={cx('modal', size === 'lg' && 'modal-lg', size === 'xl' && 'modal-xl', hideHeader && 'modal-no-header')}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <header className="modal-header">
-          <div>
-            <h2 id={titleId}>{title}</h2>
-            {description ? <p>{description}</p> : null}
-          </div>
-          <button type="button" className="icon-button" onClick={onClose} aria-label="Close dialog">
+        {!hideHeader ? (
+          <header className="modal-header">
+            <div>
+              <h2 id={titleId}>{title}</h2>
+              {description ? <p>{description}</p> : null}
+            </div>
+            <button type="button" className="icon-button" onClick={onClose} aria-label="Close dialog">
+              <X size={16} />
+            </button>
+          </header>
+        ) : (
+          <button type="button" className="icon-button modal-close-absolute" onClick={onClose} aria-label="Close dialog">
             <X size={16} />
           </button>
-        </header>
+        )}
         <div className="modal-body">{children}</div>
         {footer ? <footer className="modal-footer">{footer}</footer> : null}
       </div>

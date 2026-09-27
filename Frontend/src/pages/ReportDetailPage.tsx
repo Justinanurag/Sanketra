@@ -16,8 +16,7 @@ import { formatDateTime, formatPercent } from '@/lib/format'
 
 type TabId = 'overview' | 'barrier' | 'evidence' | 'historical' | 'review'
 
-export function ReportDetailPage() {
-  const { reportId = '' } = useParams()
+export function ReportDetailView({ reportId, onClose }: { reportId: string, onClose?: () => void }) {
   const navigate = useNavigate()
   const { data, openReportForm, deleteReport } = useWorkspace()
   const [tab, setTab] = useState<TabId>('overview')
@@ -29,7 +28,7 @@ export function ReportDetailPage() {
       <EmptyState
         title="Report not found"
         description="That identifier is not in the working register."
-        action={<Link className="btn btn-secondary" to="/reports">Back to reports</Link>}
+        action={onClose ? <Button onClick={onClose}>Close view</Button> : <Link className="btn btn-secondary" to="/reports">Back to reports</Link>}
       />
     )
   }
@@ -51,7 +50,8 @@ export function ReportDetailPage() {
     if (!confirmed || !report) return
     deleteReport(report.id)
     toast.success('Report deleted', { description: report.id })
-    navigate('/reports')
+    if (onClose) onClose()
+    else navigate('/reports')
   }
 
   return (
@@ -62,7 +62,7 @@ export function ReportDetailPage() {
         actions={
           <>
             <Button variant="secondary" onClick={() => openReportForm(report.id)}>Edit</Button>
-            <Button variant="secondary" onClick={() => navigate(`/reviews/${report.id}`)}>Open review</Button>
+            <Button variant="secondary" onClick={() => { if (onClose) onClose(); navigate(`/reviews/${report.id}`); }}>Open review</Button>
             <Button variant="danger" onClick={() => void onDelete()}>Delete</Button>
           </>
         }
@@ -166,7 +166,7 @@ export function ReportDetailPage() {
                 <h2>CCTV evidence</h2>
                 <p>Optional. Object detection does not assign SIF severity.</p>
               </div>
-              <Link to="/cctv" className="btn btn-secondary btn-sm">Open CCTV</Link>
+              <Link to="/cctv" className="btn btn-secondary btn-sm" onClick={onClose}>Open CCTV</Link>
             </header>
             {videos.length ? (
               <ul className="plain-list">
@@ -184,7 +184,7 @@ export function ReportDetailPage() {
                 <h2>Claim checks</h2>
                 <p>{claims.length ? `${claims.length} claims prepared for this report.` : 'No claim-by-claim check has been prepared.'}</p>
               </div>
-              <Link to={`/correlations?report=${report.id}`} className="btn btn-secondary btn-sm">Open correlation</Link>
+              <Link to={`/correlations?report=${report.id}`} className="btn btn-secondary btn-sm" onClick={onClose}>Open correlation</Link>
             </header>
           </section>
         </div>
@@ -232,7 +232,7 @@ export function ReportDetailPage() {
               <EmptyState
                 title="No officer decision yet"
                 description="The rule result is still waiting. Approve, edit, or reject it from the review screen."
-                action={<Button onClick={() => navigate(`/reviews/${report.id}`)}>Open review</Button>}
+                action={<Button onClick={() => { if (onClose) onClose(); navigate(`/reviews/${report.id}`); }}>Open review</Button>}
               />
             )}
           </section>
@@ -261,4 +261,9 @@ export function ReportDetailPage() {
       ) : null}
     </div>
   )
+}
+
+export function ReportDetailPage() {
+  const { reportId = '' } = useParams()
+  return <ReportDetailView reportId={reportId} />
 }

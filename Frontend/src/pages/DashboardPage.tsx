@@ -11,13 +11,17 @@ import type { SafetyReport } from '@/types/domain'
 
 export function DashboardPage() {
   const navigate = useNavigate()
-  const { data, openReportForm } = useWorkspace()
+  const { data, openReportForm, openReportView } = useWorkspace()
   if (!data) return null
   const metrics = buildMetrics(data)
   const recent = [...data.reports].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).slice(0, 5)
 
   const columns: Column<SafetyReport>[] = [
-    { id: 'id', header: 'Report', sortValue: (row) => row.id, render: (row) => <span className="mono">{row.id}</span> },
+    { id: 'id', header: 'Report', sortValue: (row) => row.id, render: (row) => (
+      <button type="button" className="mono" style={{ background: 'transparent', border: 0, padding: 0, color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }} onClick={(e) => { e.stopPropagation(); openReportView(row.id); }}>
+        {row.id}
+      </button>
+    )},
     { id: 'title', header: 'Title', sortValue: (row) => row.title, render: (row) => <span className="row-title">{row.title}</span> },
     { id: 'sif', header: 'SIF potential', render: (row) => <StatusBadge domain="sif" value={row.sifPotential} /> },
     { id: 'review', header: 'Review', render: (row) => <StatusBadge domain="review" value={row.reviewStatus} /> },
@@ -57,7 +61,7 @@ export function DashboardPage() {
           rows={recent}
           getRowId={(row) => row.id}
           pageSize={5}
-          onRowClick={(row) => navigate(`/reports/${row.id}`)}
+          onRowClick={(row) => openReportView(row.id)}
           label="Recent reports"
         />
       </section>

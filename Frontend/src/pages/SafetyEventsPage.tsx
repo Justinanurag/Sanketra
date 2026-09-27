@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { StatusBadge } from '@/components/status/StatusBadge'
+import { Button } from '@/components/ui/Button'
 import { Callout } from '@/components/ui/Callout'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import { DetailList } from '@/components/ui/DetailList'
@@ -13,7 +14,7 @@ import type { SafetyEvent } from '@/types/domain'
 
 export function SafetyEventsPage() {
   const navigate = useNavigate()
-  const { data } = useWorkspace()
+  const { data, openReportView, openEventView } = useWorkspace()
   const [decision, setDecision] = useState('all')
   const rows = useMemo(
     () => (data?.events ?? []).filter((event) => decision === 'all' || event.decision === decision),
@@ -23,6 +24,11 @@ export function SafetyEventsPage() {
 
   const columns: Column<SafetyEvent>[] = [
     { id: 'id', header: 'Event', sortValue: (row) => row.id, render: (row) => <span className="mono">{row.id}</span> },
+    { id: 'reportId', header: 'Source', sortValue: (row) => row.reportId, render: (row) => (
+      <button type="button" className="mono" style={{ background: 'transparent', border: 0, padding: 0, color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }} onClick={(e) => { e.stopPropagation(); openReportView(row.reportId); }}>
+        {row.reportId}
+      </button>
+    )},
     { id: 'title', header: 'Title', sortValue: (row) => row.title, render: (row) => <span className="row-title">{row.title}</span> },
     { id: 'decision', header: 'Decision', sortValue: (row) => row.decision, render: (row) => <StatusBadge domain="review" value={row.decision} /> },
     { id: 'sif', header: 'SIF potential', sortValue: (row) => row.sifPotential, render: (row) => <StatusBadge domain="sif" value={row.sifPotential} /> },
@@ -49,7 +55,7 @@ export function SafetyEventsPage() {
           columns={columns}
           rows={rows}
           getRowId={(row) => row.id}
-          onRowClick={(row) => navigate(`/safety-events/${row.id}`)}
+          onRowClick={(row) => openEventView(row.id)}
           label="Safety events"
           emptyTitle="No safety events"
           emptyDescription="Events appear here after a safety officer records a decision."
@@ -60,8 +66,8 @@ export function SafetyEventsPage() {
   )
 }
 
-export function SafetyEventDetailPage() {
-  const { eventId = '' } = useParams()
+export function SafetyEventDetailView({ eventId, onClose }: { eventId: string, onClose?: () => void }) {
+  const navigate = useNavigate()
   const { data } = useWorkspace()
   const event = data?.events.find((item) => item.id === eventId)
   if (!data) return null
@@ -70,7 +76,7 @@ export function SafetyEventDetailPage() {
       <EmptyState
         title="Safety event not found"
         description="That event is not in the register."
-        action={<Link className="btn btn-secondary" to="/safety-events">Back to events</Link>}
+        action={onClose ? <Button onClick={onClose}>Close view</Button> : <Link className="btn btn-secondary" to="/safety-events">Back to events</Link>}
       />
     )
   }
@@ -79,7 +85,7 @@ export function SafetyEventDetailPage() {
       <PageHeader
         title={event.title}
         description={`${event.id} · decided ${formatDateTime(event.decidedAt)}`}
-        actions={<Link className="btn btn-secondary" to={`/reports/${event.reportId}`}>Open source report</Link>}
+        actions={<Button variant="secondary" onClick={() => { if (onClose) onClose(); navigate(`/reports/${event.reportId}`); }}>Open source report</Button>}
       />
       <Callout tone={event.decision === 'approved' ? 'info' : 'critical'} title={event.decision === 'approved' ? 'Approved by a safety officer' : 'Rejected — not a closed event'}>
         {event.decision === 'approved'
@@ -101,4 +107,9 @@ export function SafetyEventDetailPage() {
       </section>
     </div>
   )
+}
+
+export function SafetyEventDetailPage() {
+  const { eventId = '' } = useParams()
+  return <SafetyEventDetailView eventId={eventId} />
 }
