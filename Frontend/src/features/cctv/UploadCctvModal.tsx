@@ -17,7 +17,8 @@ export function UploadCctvModal({ open, onClose }: { open: boolean; onClose: () 
   const { data, addVideo } = useWorkspace()
   const [file, setFile] = useState<File | null>(null)
   const [fileError, setFileError] = useState('')
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<{ camera: string; location: string; reportId: string }>({
+  const [saving, setSaving] = useState(false)
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<{ camera: string; location: string; reportId: string }>({
     resolver: zodResolver(cctvSchema),
     defaultValues: { camera: '', location: '', reportId: '' },
     mode: 'onTouched',
@@ -28,12 +29,17 @@ export function UploadCctvModal({ open, onClose }: { open: boolean; onClose: () 
       setFileError('Choose a video, image, or document.')
       return
     }
-    await new Promise((resolve) => window.setTimeout(resolve, 180))
-    const video = addVideo(file, values)
-    toast.success('Evidence uploaded', { description: video.id })
-    setFile(null)
-    reset()
-    onClose()
+    setSaving(true)
+    try {
+      await new Promise((resolve) => window.setTimeout(resolve, 180))
+      const video = addVideo(file, values)
+      toast.success('Evidence uploaded', { description: video.id })
+      setFile(null)
+      reset()
+      onClose()
+    } finally {
+      setSaving(false)
+    }
   })
 
   return (
@@ -45,7 +51,7 @@ export function UploadCctvModal({ open, onClose }: { open: boolean; onClose: () 
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit" form="cctv-form" disabled={isSubmitting}>{isSubmitting ? 'Uploading…' : 'Upload evidence'}</Button>
+          <Button type="submit" form="cctv-form" disabled={saving}>{saving ? 'Uploading…' : 'Upload evidence'}</Button>
         </>
       }
     >

@@ -489,6 +489,7 @@ table.data tbody tr.is-clickable { cursor: pointer; }
 }
 .modal-backdrop { display: flex; justify-content: center; align-items: flex-start; padding: 40px 16px; overflow: auto; }
 .modal {
+  position: relative;
   width: min(560px, 100%);
   background: #fff;
   border: 1px solid var(--line);

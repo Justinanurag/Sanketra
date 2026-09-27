@@ -1,34 +1,42 @@
 import { workspaceSeed } from '@/data/mock'
 import { buildMetrics } from '@/lib/metrics'
-import type { WorkspaceData } from '@/types/domain'
+import type { ReportDraft, SafetyReport, WorkspaceData } from '@/types/domain'
 
 const wait = <T,>(value: T, delay = 280) =>
   new Promise<T>((resolve) => {
     window.setTimeout(() => resolve(value), delay)
   })
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+function apiUrl() {
+  const value = import.meta.env.VITE_API_URL
+  return typeof value === 'string' && value.length > 0 ? value.replace(/\/$/, '') : null
+}
 
 export async function loadWorkspace(): Promise<WorkspaceData> {
   const seed = structuredClone(workspaceSeed)
+  const base = apiUrl()
+  if (!base) return wait(seed)
   try {
-    const res = await fetch(`${API_URL}/reports`)
+    const res = await fetch(`${base}/reports`)
     if (res.ok) {
       const dbReports = await res.json()
-      const mappedReports = dbReports.map((dbReport: any) => ({
-        id: dbReport.id.toString(),
+      if (!Array.isArray(dbReports)) return wait(seed)
+      const mappedReports: SafetyReport[] = dbReports.map((dbReport: Record<string, string>) => ({
+        id: String(dbReport.id),
         title: dbReport.title,
         description: dbReport.description,
-        type: dbReport.report_type,
+        type: (dbReport.report_type || 'Near Miss') as SafetyReport['type'],
         occurredAt: dbReport.incident_date,
         location: dbReport.site_location || '',
         reporter: 'Integration User',
         reporterRole: 'Safety Officer',
+        hazardId: null,
         hazardName: dbReport.hazard_name || '',
         energySource: dbReport.energy_source || '',
         humanExposure: dbReport.human_exposure || '',
+        barrierId: null,
         barrierName: dbReport.barrier_name || '',
-        barrierStatus: dbReport.barrier_status || 'unknown',
+        barrierStatus: (dbReport.barrier_status || 'unknown') as SafetyReport['barrierStatus'],
         consequence: dbReport.consequence || '',
         notes: dbReport.notes || '',
         reviewStatus: 'needs_review',
@@ -38,18 +46,20 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
         recommendations: [],
         originalRecommendations: [],
         evidencePhrases: [],
-        extractionConfidence: null
+        extractionConfidence: null,
       }))
-      seed.reports = mappedReports
+      if (mappedReports.length) seed.reports = mappedReports
     }
-  } catch (error) {
-    console.error('Failed to fetch reports from backend:', error)
+  } catch {
+    // The local register stays in place when the API is offline.
   }
   return wait(seed)
 }
 
-export async function createReportApi(data: any) {
-  const res = await fetch(`${API_URL}/reports`, {
+export async function createReportApi(data: ReportDraft) {
+  const base = apiUrl()
+  if (!base) return null
+  const res = await fetch(`${base}/reports`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
@@ -74,22 +84,23 @@ export async function getReport(id: string) {
 }
 
 export async function analyzeReport(id: string) {
-  try {
-    const res = await fetch(`${API_URL}/reports/${id}/analyze`, {
-      method: 'POST'
-    })
-    if (res.ok) {
-      const data = await res.json()
-      return {
-        id,
-        sifPotential: data.sif_potential,
-        confidence: data.extraction_confidence,
-        analysis: data.analysis,
-        demo: false
+  const base = apiUrl()
+  if (base) {
+    try {
+      const res = await fetch(`${base}/reports/${id}/analyze`, { method: 'POST' })
+      if (res.ok) {
+        const data = await res.json()
+        return {
+          id,
+          sifPotential: data.sif_potential,
+          confidence: data.extraction_confidence,
+          analysis: data.analysis,
+          demo: false,
+        }
       }
+    } catch {
+      // Fall through to the local rule result.
     }
-  } catch (err) {
-    console.error('Failed to trigger AI analysis:', err)
   }
   
   // Fallback to mock logic
@@ -121,18 +132,21 @@ export async function getCorrelation(id: string) {
 }
 
 export async function submitReview(id: string, body: { decision: string; comments: string }) {
-  try {
-    const res = await fetch(`${API_URL}/reviews/${id}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    })
-    if (res.ok) {
-      const data = await res.json()
-      return { id, ...body, event: data.event, status: 'recorded' as const }
+  const base = apiUrl()
+  if (base) {
+    try {
+      const res = await fetch(`${base}/reviews/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        return { id, ...body, event: data.event, status: 'recorded' as const }
+      }
+    } catch {
+      // The officer decision is still stored in the local register.
     }
-  } catch (err) {
-    console.error('Failed to submit review to backend:', err)
   }
   return wait({ id, ...body, status: 'recorded' as const })
 }

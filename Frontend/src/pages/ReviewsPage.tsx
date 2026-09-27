@@ -21,8 +21,7 @@ import { reviewSchema } from '@/lib/schemas'
 import type { SafetyReport } from '@/types/domain'
 
 export function ReviewsPage() {
-  const navigate = useNavigate()
-  const { data, openReportView } = useWorkspace()
+  const { data, openReportView, openReviewView } = useWorkspace()
   const [queue, setQueue] = useState('open')
   const rows = useMemo(() => {
     const reports = data?.reports ?? []
@@ -73,12 +72,13 @@ export function ReviewsPage() {
 
 export function ReviewDetailView({ reportId, onClose }: { reportId: string, onClose?: () => void }) {
   const navigate = useNavigate()
-  const { data, submitReview, openReportForm } = useWorkspace()
+  const { data, submitReview, openReportForm, openEventView } = useWorkspace()
   const report = data?.reports.find((item) => item.id === reportId)
   const latest = data?.reviews.find((item) => item.reportId === reportId)
   const event = data?.events.find((item) => item.reportId === reportId)
   const [revising, setRevising] = useState(false)
-  const { register, handleSubmit, getValues, formState: { errors, isSubmitting } } = useForm<{ comments: string }>({
+  const [saving, setSaving] = useState(false)
+  const { register, handleSubmit, getValues, formState: { errors } } = useForm<{ comments: string }>({
     resolver: zodResolver(reviewSchema),
     defaultValues: { comments: '' },
     mode: 'onTouched',
@@ -98,11 +98,20 @@ export function ReviewDetailView({ reportId, onClose }: { reportId: string, onCl
       confirmText: 'Approve',
     })
     if (!confirmed || !report) return
-    const created = await submitReview({ reportId: report.id, decision: 'approved', comments: values.comments })
-    if (!created) return
-    toast.success('Safety event approved', { description: created.id })
-    if (onClose) onClose()
-    navigate(`/safety-events/${created.id}`)
+    setSaving(true)
+    try {
+      const created = await submitReview({ reportId: report.id, decision: 'approved', comments: values.comments })
+      if (!created) return
+      toast.success('Safety event approved', { description: created.id })
+      if (onClose) {
+        onClose()
+        openEventView(created.id)
+        return
+      }
+      navigate(`/safety-events/${created.id}`)
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function reject() {
@@ -117,7 +126,11 @@ export function ReviewDetailView({ reportId, onClose }: { reportId: string, onCl
     const created = await submitReview({ reportId: report.id, decision: 'rejected', comments: reason })
     if (!created) return
     toast.success('Decision recorded', { description: `${report.id} rejected` })
-    if (onClose) onClose()
+    if (onClose) {
+      onClose()
+      openEventView(created.id)
+      return
+    }
     navigate(`/safety-events/${created.id}`)
   }
 
@@ -187,7 +200,7 @@ export function ReviewDetailView({ reportId, onClose }: { reportId: string, onCl
                   { label: 'Comments', value: latest.comments },
                 ]}
               />
-              {event ? <Button variant="ghost" onClick={() => { if (onClose) onClose(); navigate(`/safety-events/${event.id}`); }}>Open {event.id}</Button> : null}
+              {event ? <Button variant="ghost" onClick={() => { if (onClose) { onClose(); openEventView(event.id); return } navigate(`/safety-events/${event.id}`) }}>Open {event.id}</Button> : null}
               <Button variant="secondary" onClick={() => setRevising(true)}>Record a revised decision</Button>
             </div>
           ) : (
@@ -196,7 +209,7 @@ export function ReviewDetailView({ reportId, onClose }: { reportId: string, onCl
                 <Textarea id="review-comments" rows={6} aria-invalid={!!errors.comments} {...register('comments')} />
               </Field>
               <div className="inline-actions">
-                <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Saving…' : 'Approve'}</Button>
+                <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Approve'}</Button>
                 <Button variant="secondary" onClick={() => openReportForm(report.id)}>Edit</Button>
                 <Button variant="danger" onClick={() => void reject()}>Reject</Button>
               </div>

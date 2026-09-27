@@ -65,10 +65,10 @@ export function MainLayout() {
           ) : null}
         </main>
       </div>
-      <CreateReportModal />
       <ReportDetailModal />
       <ReviewDetailModal />
       <SafetyEventDetailModal />
+      <CreateReportModal />
       <Toaster
         theme="light"
         position="bottom-right"

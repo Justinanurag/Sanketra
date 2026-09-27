@@ -10,6 +10,7 @@ export function Modal({
   children,
   footer,
   size = 'md',
+  hideHeader = false,
 }: {
   open: boolean
   title: string
@@ -67,7 +68,8 @@ export function Modal({
         className={cx('modal', size === 'lg' && 'modal-lg', size === 'xl' && 'modal-xl', hideHeader && 'modal-no-header')}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={titleId}
+        aria-labelledby={hideHeader ? undefined : titleId}
+        aria-label={hideHeader ? title : undefined}
         onMouseDown={(event) => event.stopPropagation()}
       >
         {!hideHeader ? (

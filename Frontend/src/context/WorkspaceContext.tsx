@@ -12,7 +12,7 @@ import {
   applyReview,
   applyUpdateReport,
 } from '@/lib/mutations'
-import { loadWorkspace } from '@/services/api'
+import { createReportApi, loadWorkspace, submitReview as submitReviewApi } from '@/services/api'
 import type {
   BarrierDraft,
   CctvVideo,
@@ -88,19 +88,19 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const createReport = useCallback(async (input: ReportDraft) => {
     const now = new Date().toISOString()
-    let created!: SafetyReport
     try {
-      await import('@/services/api').then(m => m.createReportApi(input));
-    } catch (e) {
-      console.warn('Backend not available, creating locally only');
+      await createReportApi(input)
+    } catch {
+      // The report is still written to the local register.
     }
-    
+    let created: SafetyReport | null = null
     setData((current) => {
       if (!current) return current
       const result = applyCreateReport(current, input, now, currentUser)
       created = result.report
       return result.data
     })
+    if (!created) throw new Error('Workspace not loaded')
     return created
   }, [])
 
@@ -170,9 +170,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       let event: SafetyEvent | null = null
       
       try {
-        await import('@/services/api').then(m => m.submitReview(input.reportId, input));
-      } catch (e) {
-        console.warn('Backend not available, reviewing locally only');
+        await submitReviewApi(input.reportId, input)
+      } catch {
+        // The decision is still written to the local register.
       }
 
       setData((current) => {

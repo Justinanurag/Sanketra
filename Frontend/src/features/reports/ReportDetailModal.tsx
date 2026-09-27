@@ -1,4 +1,3 @@
-import { X } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { useWorkspace } from '@/hooks/useWorkspace'
 import { ReportDetailView } from '@/pages/ReportDetailPage'

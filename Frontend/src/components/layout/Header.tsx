@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Bell, ChevronDown, Menu, PanelLeft, Search } from 'lucide-react'
-import { Link, useNavigate } from 'react-router'
+import { Link } from 'react-router'
 import { toast } from 'sonner'
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs'
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown'
@@ -17,8 +17,7 @@ export function Header({
   showMenuIcon: boolean
   onToggle: () => void
 }) {
-  const navigate = useNavigate()
-  const { data, markNotificationsRead } = useWorkspace()
+  const { data, markNotificationsRead, openReportView, openReviewView, openEventView } = useWorkspace()
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const unread = data?.notifications.some((item) => item.unread) ?? false
@@ -57,7 +56,11 @@ export function Header({
           onFocus={() => setSearchOpen(true)}
           onBlur={() => window.setTimeout(() => setSearchOpen(false), 150)}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' && results[0]) navigate(`/reports/${results[0].id}`)
+            if (event.key === 'Enter' && results[0]) {
+              openReportView(results[0].id)
+              setQuery('')
+              setSearchOpen(false)
+            }
             if (event.key === 'Escape') setSearchOpen(false)
           }}
         />
@@ -65,10 +68,20 @@ export function Header({
           <div className="dropdown-menu" style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0 }}>
             {results.length ? (
               results.map((report) => (
-                <Link key={report.id} className="menu-link" to={`/reports/${report.id}`}>
+                <button
+                  key={report.id}
+                  type="button"
+                  className="menu-link"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => {
+                    openReportView(report.id)
+                    setQuery('')
+                    setSearchOpen(false)
+                  }}
+                >
                   <span className="mono">{report.id}</span>
                   <span className="menu-meta">{report.title}</span>
-                </Link>
+                </button>
               ))
             ) : (
               <div className="dropdown-item">No matching reports</div>
@@ -95,7 +108,27 @@ export function Header({
       >
         {(data?.notifications ?? []).length ? (
           data?.notifications.map((item) => (
-            <Link key={item.id} className="menu-link" to={item.href} onClick={markNotificationsRead}>
+            <Link
+              key={item.id}
+              className="menu-link"
+              to={item.href}
+              onClick={(event) => {
+                markNotificationsRead()
+                const review = item.href.match(/^\/reviews\/([^/]+)$/)
+                const report = item.href.match(/^\/reports\/([^/]+)$/)
+                const safetyEvent = item.href.match(/^\/safety-events\/([^/]+)$/)
+                if (review) {
+                  event.preventDefault()
+                  openReviewView(review[1])
+                } else if (report) {
+                  event.preventDefault()
+                  openReportView(report[1])
+                } else if (safetyEvent) {
+                  event.preventDefault()
+                  openEventView(safetyEvent[1])
+                }
+              }}
+            >
               {item.title}
               <span className="menu-meta">
                 {item.body} · {formatDateTime(item.createdAt)}

@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router'
+import { Link } from 'react-router'
 import { Button } from '@/components/ui/Button'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { StatusBadge } from '@/components/status/StatusBadge'
@@ -10,7 +10,6 @@ import { formatDate } from '@/lib/format'
 import type { SafetyReport } from '@/types/domain'
 
 export function DashboardPage() {
-  const navigate = useNavigate()
   const { data, openReportForm, openReportView } = useWorkspace()
   if (!data) return null
   const metrics = buildMetrics(data)

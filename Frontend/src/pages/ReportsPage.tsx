@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router'
 import { MoreHorizontal } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -16,7 +15,6 @@ import { formatDate } from '@/lib/format'
 import { barrierConditions, reportTypes, reviewStatuses, sifPotentials, type SafetyReport } from '@/types/domain'
 
 export function ReportsPage() {
-  const navigate = useNavigate()
   const { data, openReportForm, deleteReport, openReportView, openReviewView } = useWorkspace()
   const [query, setQuery] = useState('')
   const [type, setType] = useState('all')
@@ -122,7 +120,6 @@ export function ReportsPage() {
               <option key={item} value={item}>{labelOf(item)}</option>
             ))}
           </Select>
-          {selected.length ? <span className="selected-note">{selected.length} selected</span> : null}
         </div>
         <DataTable
           columns={columns}

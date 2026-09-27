@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
@@ -23,18 +24,24 @@ const empty: HazardDraft = {
 
 export function HazardFormModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { addHazard } = useWorkspace()
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<HazardDraft>({
+  const [saving, setSaving] = useState(false)
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<HazardDraft>({
     resolver: zodResolver(hazardSchema),
     defaultValues: empty,
     mode: 'onTouched',
   })
 
   const onSubmit = handleSubmit(async (values) => {
-    await new Promise((resolve) => window.setTimeout(resolve, 150))
-    addHazard(values)
-    toast.success('Hazard added')
-    reset(empty)
-    onClose()
+    setSaving(true)
+    try {
+      await new Promise((resolve) => window.setTimeout(resolve, 150))
+      addHazard(values)
+      toast.success('Hazard added')
+      reset(empty)
+      onClose()
+    } finally {
+      setSaving(false)
+    }
   })
 
   return (
@@ -46,7 +53,7 @@ export function HazardFormModal({ open, onClose }: { open: boolean; onClose: () 
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit" form="hazard-form" disabled={isSubmitting}>{isSubmitting ? 'Saving…' : 'Add hazard'}</Button>
+          <Button type="submit" form="hazard-form" disabled={saving}>{saving ? 'Saving…' : 'Add hazard'}</Button>
         </>
       }
     >

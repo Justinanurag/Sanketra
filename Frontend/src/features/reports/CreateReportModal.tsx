@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { ReportFormFields } from '@/features/reports/ReportFormFields'
 import { Button } from '@/components/ui/Button'
@@ -27,8 +26,7 @@ const emptyDraft: ReportDraft = {
 }
 
 export function CreateReportModal() {
-  const navigate = useNavigate()
-  const { reportFormId, openReportForm, data, createReport, updateReport } = useWorkspace()
+  const { reportFormId, openReportForm, data, createReport, updateReport, openReportView } = useWorkspace()
   const editing = reportFormId && reportFormId !== 'new' ? data?.reports.find((report) => report.id === reportFormId) : null
   const open = reportFormId !== null
   const [saving, setSaving] = useState(false)
@@ -79,7 +77,7 @@ export function CreateReportModal() {
       const report = await createReport(values)
       toast.success('Report created', { description: report.id })
       openReportForm(null)
-      navigate(`/reports/${report.id}`)
+      openReportView(report.id)
     } finally {
       setSaving(false)
     }

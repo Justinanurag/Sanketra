@@ -13,7 +13,6 @@ import { formatDateTime } from '@/lib/format'
 import type { SafetyEvent } from '@/types/domain'
 
 export function SafetyEventsPage() {
-  const navigate = useNavigate()
   const { data, openReportView, openEventView } = useWorkspace()
   const [decision, setDecision] = useState('all')
   const rows = useMemo(
@@ -68,7 +67,7 @@ export function SafetyEventsPage() {
 
 export function SafetyEventDetailView({ eventId, onClose }: { eventId: string, onClose?: () => void }) {
   const navigate = useNavigate()
-  const { data } = useWorkspace()
+  const { data, openReportView } = useWorkspace()
   const event = data?.events.find((item) => item.id === eventId)
   if (!data) return null
   if (!event) {
@@ -85,7 +84,7 @@ export function SafetyEventDetailView({ eventId, onClose }: { eventId: string, o
       <PageHeader
         title={event.title}
         description={`${event.id} · decided ${formatDateTime(event.decidedAt)}`}
-        actions={<Button variant="secondary" onClick={() => { if (onClose) onClose(); navigate(`/reports/${event.reportId}`); }}>Open source report</Button>}
+        actions={<Button variant="secondary" onClick={() => { if (onClose) { onClose(); openReportView(event.reportId); return } navigate(`/reports/${event.reportId}`) }}>Open source report</Button>}
       />
       <Callout tone={event.decision === 'approved' ? 'info' : 'critical'} title={event.decision === 'approved' ? 'Approved by a safety officer' : 'Rejected — not a closed event'}>
         {event.decision === 'approved'

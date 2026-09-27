@@ -18,7 +18,7 @@ type TabId = 'overview' | 'barrier' | 'evidence' | 'historical' | 'review'
 
 export function ReportDetailView({ reportId, onClose }: { reportId: string, onClose?: () => void }) {
   const navigate = useNavigate()
-  const { data, openReportForm, deleteReport } = useWorkspace()
+  const { data, openReportForm, deleteReport, openReviewView } = useWorkspace()
   const [tab, setTab] = useState<TabId>('overview')
   const report = data?.reports.find((item) => item.id === reportId)
 
@@ -62,7 +62,7 @@ export function ReportDetailView({ reportId, onClose }: { reportId: string, onCl
         actions={
           <>
             <Button variant="secondary" onClick={() => openReportForm(report.id)}>Edit</Button>
-            <Button variant="secondary" onClick={() => { if (onClose) onClose(); navigate(`/reviews/${report.id}`); }}>Open review</Button>
+            <Button variant="secondary" onClick={() => { if (onClose) { onClose(); openReviewView(report.id); return } navigate(`/reviews/${report.id}`) }}>Open review</Button>
             <Button variant="danger" onClick={() => void onDelete()}>Delete</Button>
           </>
         }
@@ -232,7 +232,7 @@ export function ReportDetailView({ reportId, onClose }: { reportId: string, onCl
               <EmptyState
                 title="No officer decision yet"
                 description="The rule result is still waiting. Approve, edit, or reject it from the review screen."
-                action={<Button onClick={() => { if (onClose) onClose(); navigate(`/reviews/${report.id}`); }}>Open review</Button>}
+                action={<Button onClick={() => { if (onClose) { onClose(); openReviewView(report.id); return } navigate(`/reviews/${report.id}`) }}>Open review</Button>}
               />
             )}
           </section>

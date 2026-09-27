@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
@@ -24,18 +25,24 @@ const empty: ExposureDraft = {
 
 export function ExposureFormModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { data, addExposure } = useWorkspace()
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<ExposureDraft>({
+  const [saving, setSaving] = useState(false)
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<ExposureDraft>({
     resolver: zodResolver(exposureSchema),
     defaultValues: empty,
     mode: 'onTouched',
   })
 
   const onSubmit = handleSubmit(async (values) => {
-    await new Promise((resolve) => window.setTimeout(resolve, 150))
-    addExposure(values)
-    toast.success('Exposure added')
-    reset(empty)
-    onClose()
+    setSaving(true)
+    try {
+      await new Promise((resolve) => window.setTimeout(resolve, 150))
+      addExposure(values)
+      toast.success('Exposure added')
+      reset(empty)
+      onClose()
+    } finally {
+      setSaving(false)
+    }
   })
 
   return (
@@ -47,7 +54,7 @@ export function ExposureFormModal({ open, onClose }: { open: boolean; onClose: (
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit" form="exposure-form" disabled={isSubmitting}>{isSubmitting ? 'Saving…' : 'Add exposure'}</Button>
+          <Button type="submit" form="exposure-form" disabled={saving}>{saving ? 'Saving…' : 'Add exposure'}</Button>
         </>
       }
     >

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
@@ -23,18 +24,24 @@ const empty: BarrierDraft = {
 
 export function BarrierFormModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { addBarrier } = useWorkspace()
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<BarrierDraft>({
+  const [saving, setSaving] = useState(false)
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<BarrierDraft>({
     resolver: zodResolver(barrierSchema),
     defaultValues: empty,
     mode: 'onTouched',
   })
 
   const onSubmit = handleSubmit(async (values) => {
-    await new Promise((resolve) => window.setTimeout(resolve, 150))
-    addBarrier(values)
-    toast.success('Barrier added')
-    reset(empty)
-    onClose()
+    setSaving(true)
+    try {
+      await new Promise((resolve) => window.setTimeout(resolve, 150))
+      addBarrier(values)
+      toast.success('Barrier added')
+      reset(empty)
+      onClose()
+    } finally {
+      setSaving(false)
+    }
   })
 
   return (
@@ -46,7 +53,7 @@ export function BarrierFormModal({ open, onClose }: { open: boolean; onClose: ()
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit" form="barrier-form" disabled={isSubmitting}>{isSubmitting ? 'Saving…' : 'Add barrier'}</Button>
+          <Button type="submit" form="barrier-form" disabled={saving}>{saving ? 'Saving…' : 'Add barrier'}</Button>
         </>
       }
     >
