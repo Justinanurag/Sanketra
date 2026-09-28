@@ -17,21 +17,23 @@ export function Drawer({
   footer?: ReactNode
 }) {
   const ref = useRef<HTMLElement>(null)
+  const onCloseRef = useRef(onClose)
   const titleId = useId()
+  onCloseRef.current = onClose
 
   useEffect(() => {
     if (!open) return
     const previous = document.activeElement as HTMLElement | null
     ref.current?.querySelector<HTMLElement>('button, [href], input, select, textarea')?.focus()
     function onKey(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') onCloseRef.current()
     }
     document.addEventListener('keydown', onKey)
     return () => {
       document.removeEventListener('keydown', onKey)
       previous?.focus()
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
 

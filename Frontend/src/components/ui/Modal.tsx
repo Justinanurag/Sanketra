@@ -22,7 +22,9 @@ export function Modal({
   hideHeader?: boolean
 }) {
   const ref = useRef<HTMLDivElement>(null)
+  const onCloseRef = useRef(onClose)
   const titleId = useId()
+  onCloseRef.current = onClose
 
   useEffect(() => {
     if (!open) return
@@ -35,7 +37,7 @@ export function Modal({
     const field = root?.querySelector<HTMLElement>('input, select, textarea')
     ;(field ?? focusable()[0])?.focus()
     function onKey(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') onCloseRef.current()
       if (event.key !== 'Tab') return
       const nodes = focusable()
       if (!nodes.length) return
@@ -57,7 +59,7 @@ export function Modal({
       document.body.style.overflow = previousOverflow
       previous?.focus()
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
 
