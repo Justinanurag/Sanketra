@@ -13,6 +13,7 @@ import {
   applyUpdateReport,
 } from '@/lib/mutations'
 import { createReportApi, loadWorkspace, submitReview as submitReviewApi } from '@/services/api'
+import type { ExtractionFill } from '@/services/reportExtraction'
 import type {
   BarrierDraft,
   CctvVideo,
@@ -32,6 +33,8 @@ interface WorkspaceContextValue {
   data: WorkspaceData | null
   previews: Record<string, string>
   openReportForm: (reportId: string | 'new' | null) => void
+  openExtractedReport: (fill: ExtractionFill) => void
+  extraction: ExtractionFill | null
   reportFormId: string | 'new' | null
   openReportView: (reportId: string | null) => void
   viewReportId: string | null
@@ -65,6 +68,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<WorkspaceData | null>(null)
   const [previews, setPreviews] = useState<Record<string, string>>({})
   const [reportFormId, setReportFormId] = useState<string | 'new' | null>(null)
+  const [extraction, setExtraction] = useState<ExtractionFill | null>(null)
   const [viewReportId, setViewReportId] = useState<string | null>(null)
   const [viewReviewId, setViewReviewId] = useState<string | null>(null)
   const [viewEventId, setViewEventId] = useState<string | null>(null)
@@ -196,7 +200,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       reload: () => setAttempt((value) => value + 1),
       data,
       previews,
-      openReportForm: setReportFormId,
+      openReportForm: (reportId) => {
+        setExtraction(null)
+        setReportFormId(reportId)
+      },
+      openExtractedReport: (fill) => {
+        setExtraction(fill)
+        setReportFormId('new')
+      },
+      extraction,
       reportFormId,
       openReportView: setViewReportId,
       viewReportId,
@@ -220,6 +232,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       data,
       previews,
       reportFormId,
+      extraction,
       viewReportId,
       viewReviewId,
       viewEventId,

@@ -6,6 +6,7 @@ export function Field({
   hint,
   error,
   required,
+  indicator,
   children,
   className,
 }: {
@@ -14,6 +15,7 @@ export function Field({
   hint?: string
   error?: string
   required?: boolean
+  indicator?: ReactNode
   children: ReactNode
   className?: string
 }) {
@@ -22,6 +24,7 @@ export function Field({
       <label className="field-label" htmlFor={htmlFor}>
         {label}
         {required ? <span className="req"> *</span> : null}
+        {indicator}
       </label>
       {children}
       {hint ? <p className="field-hint">{hint}</p> : null}

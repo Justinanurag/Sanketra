@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from 'react'
+import { Toaster } from 'sonner'
 import { AppRouter } from '@/app/router'
 import { ErrorState } from '@/components/ui/ErrorState'
 
@@ -33,6 +34,7 @@ export default function App() {
   return (
     <AppErrorBoundary>
       <AppRouter />
+      <Toaster theme="light" position="bottom-right" toastOptions={{ classNames: { toast: 'sanketra-toast' } }} />
     </AppErrorBoundary>
   )
 }

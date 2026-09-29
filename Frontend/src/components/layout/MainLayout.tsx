@@ -1,6 +1,5 @@
 import { Suspense, useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
-import { Toaster } from 'sonner'
 import { CreateReportModal } from '@/features/reports/CreateReportModal'
 import { ReportDetailModal } from '@/features/reports/ReportDetailModal'
 import { ReviewDetailModal } from '@/features/reviews/ReviewDetailModal'
@@ -69,11 +68,6 @@ export function MainLayout() {
       <ReviewDetailModal />
       <SafetyEventDetailModal />
       <CreateReportModal />
-      <Toaster
-        theme="light"
-        position="bottom-right"
-        toastOptions={{ classNames: { toast: 'sanketra-toast' } }}
-      />
     </div>
   )
 }

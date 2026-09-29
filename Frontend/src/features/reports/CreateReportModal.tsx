@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import { ReportFormFields } from '@/features/reports/ReportFormFields'
 import { Button } from '@/components/ui/Button'
+import { Callout } from '@/components/ui/Callout'
 import { Modal } from '@/components/ui/Modal'
 import { useWorkspace } from '@/hooks/useWorkspace'
 import { toDateTimeLocal } from '@/lib/format'
@@ -26,7 +27,7 @@ const emptyDraft: ReportDraft = {
 }
 
 export function CreateReportModal() {
-  const { reportFormId, openReportForm, data, createReport, updateReport, openReportView } = useWorkspace()
+  const { reportFormId, openReportForm, extraction, data, createReport, updateReport, openReportView } = useWorkspace()
   const editing = reportFormId && reportFormId !== 'new' ? data?.reports.find((report) => report.id === reportFormId) : null
   const open = reportFormId !== null
   const [saving, setSaving] = useState(false)
@@ -61,8 +62,8 @@ export function CreateReportModal() {
       })
       return
     }
-    reset(emptyDraft)
-  }, [open, editing, reset])
+    reset(extraction?.draft ?? emptyDraft)
+  }, [open, editing, extraction, reset])
 
   const onSubmit = handleSubmit(async (values) => {
     setSaving(true)
@@ -87,8 +88,12 @@ export function CreateReportModal() {
     <Modal
       open={open}
       size="lg"
-      title={editing ? `Edit ${editing.id}` : 'Create safety report'}
-      description="The rule result is decision support. A safety officer still has to review the record."
+      title={editing ? `Edit ${editing.id}` : extraction ? 'Review extracted report' : 'Create safety report'}
+      description={
+        extraction
+          ? `Copied from ${extraction.fileName}. Check every highlighted field before saving. SIF potential is still decided by the existing rules after you save.`
+          : 'The rule result is decision support. A safety officer still has to review the record.'
+      }
       onClose={() => openReportForm(null)}
       footer={
         <>
@@ -102,7 +107,14 @@ export function CreateReportModal() {
       }
     >
       <form id="report-form" onSubmit={onSubmit} noValidate>
-        <ReportFormFields register={register} errors={errors} />
+        {extraction && !editing ? (
+          <Callout tone="info" title="Review before saving">
+            {extraction.missing.length
+              ? 'Some required fields were not in the document. Complete those before you save. Nothing is stored until you confirm.'
+              : 'The highlighted fields were copied from the document. Nothing is stored until you confirm.'}
+          </Callout>
+        ) : null}
+        <ReportFormFields register={register} errors={errors} filled={extraction && !editing ? extraction.filled : undefined} />
       </form>
     </Modal>
   )

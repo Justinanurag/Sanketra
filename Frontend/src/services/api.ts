@@ -1,4 +1,5 @@
 import { workspaceSeed } from '@/data/mock'
+import { apiBase } from '@/services/http'
 import { buildMetrics } from '@/lib/metrics'
 import type { ReportDraft, SafetyReport, WorkspaceData } from '@/types/domain'
 
@@ -8,8 +9,7 @@ const wait = <T,>(value: T, delay = 280) =>
   })
 
 function apiUrl() {
-  const value = import.meta.env.VITE_API_URL
-  return typeof value === 'string' && value.length > 0 ? value.replace(/\/$/, '') : null
+  return apiBase()
 }
 
 export async function loadWorkspace(): Promise<WorkspaceData> {
@@ -17,7 +17,7 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
   const base = apiUrl()
   if (!base) return wait(seed)
   try {
-    const res = await fetch(`${base}/reports`)
+    const res = await fetch(`${base}/reports`, { credentials: 'include' })
     if (res.ok) {
       const dbReports = await res.json()
       if (!Array.isArray(dbReports)) return wait(seed)
@@ -61,6 +61,7 @@ export async function createReportApi(data: ReportDraft) {
   if (!base) return null
   const res = await fetch(`${base}/reports`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   })
@@ -87,7 +88,7 @@ export async function analyzeReport(id: string) {
   const base = apiUrl()
   if (base) {
     try {
-      const res = await fetch(`${base}/reports/${id}/analyze`, { method: 'POST' })
+      const res = await fetch(`${base}/reports/${id}/analyze`, { method: 'POST', credentials: 'include' })
       if (res.ok) {
         const data = await res.json()
         return {
@@ -137,6 +138,7 @@ export async function submitReview(id: string, body: { decision: string; comment
     try {
       const res = await fetch(`${base}/reviews/${id}`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })

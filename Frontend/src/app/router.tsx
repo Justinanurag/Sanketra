@@ -1,7 +1,15 @@
-import { lazy } from 'react'
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router'
+import { GuestRoute, ProtectedRoute } from '@/components/auth/ProtectedRoute'
+import { LoadingState } from '@/components/ui/LoadingState'
 import { MainLayout } from '@/components/layout/MainLayout'
+import { AuthProvider } from '@/context/AuthContext'
 import { WorkspaceProvider } from '@/context/WorkspaceContext'
+
+const LoginPage = lazy(() => import('@/pages/LoginPage').then((module) => ({ default: module.LoginPage })))
+const SignupPage = lazy(() => import('@/pages/SignupPage').then((module) => ({ default: module.SignupPage })))
+const ForgotPasswordPage = lazy(() => import('@/pages/ForgotPasswordPage').then((module) => ({ default: module.ForgotPasswordPage })))
+const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage').then((module) => ({ default: module.ResetPasswordPage })))
 
 const DashboardPage = lazy(() => import('@/pages/DashboardPage').then((module) => ({ default: module.DashboardPage })))
 const ReportsPage = lazy(() => import('@/pages/ReportsPage').then((module) => ({ default: module.ReportsPage })))
@@ -22,9 +30,23 @@ const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then((module) => 
 export function AppRouter() {
   return (
     <BrowserRouter>
-      <WorkspaceProvider>
+      <AuthProvider>
+        <Suspense fallback={<div className="auth-shell"><LoadingState label="Loading" /></div>}>
         <Routes>
-          <Route element={<MainLayout />}>
+          <Route element={<GuestRoute />}>
+            <Route path="login" element={<LoginPage />} />
+            <Route path="signup" element={<SignupPage />} />
+            <Route path="forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="reset-password" element={<ResetPasswordPage />} />
+          </Route>
+          <Route element={<ProtectedRoute />}>
+            <Route
+              element={
+                <WorkspaceProvider>
+                  <MainLayout />
+                </WorkspaceProvider>
+              }
+            >
             <Route index element={<DashboardPage />} />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="reports/:reportId" element={<ReportDetailPage />} />
@@ -40,9 +62,11 @@ export function AppRouter() {
             <Route path="reviews/:reportId" element={<ReviewDetailPage />} />
             <Route path="audit-logs" element={<AuditPage />} />
             <Route path="*" element={<NotFoundPage />} />
+            </Route>
           </Route>
         </Routes>
-      </WorkspaceProvider>
+        </Suspense>
+      </AuthProvider>
     </BrowserRouter>
   )
 }

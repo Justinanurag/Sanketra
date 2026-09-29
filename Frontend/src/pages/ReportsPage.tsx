@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { MoreHorizontal } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { SafetyReportActions } from '@/features/reports/SafetyReportActions'
 import { StatusBadge } from '@/components/status/StatusBadge'
 import { Button } from '@/components/ui/Button'
 import { DataTable, type Column } from '@/components/ui/DataTable'
@@ -91,7 +92,7 @@ export function ReportsPage() {
       <PageHeader
         title="Safety reports"
         description="Reported precursor conditions. High SIF potential is a rule result and still needs a human decision."
-        actions={<Button onClick={() => openReportForm('new')}>Create safety report</Button>}
+        actions={<SafetyReportActions />}
       />
       <section className="panel">
         <div className="toolbar">

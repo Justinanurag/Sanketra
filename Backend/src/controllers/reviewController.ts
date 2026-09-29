@@ -5,7 +5,7 @@ import { z } from 'zod';
 const reviewSchema = z.object({
   decision: z.enum(['approved', 'rejected', 'edited']),
   comments: z.string().optional(),
-  reviewer: z.string().default('Safety Officer'), // normally pulled from req.user
+  reviewer: z.string().default('Safety Officer'),
 });
 
 export const submitReview = async (req: Request, res: Response, next: NextFunction) => {

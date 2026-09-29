@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Bell, ChevronDown, Menu, PanelLeft, Search } from 'lucide-react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
+import { useAuth } from '@/hooks/useAuth'
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs'
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown'
 import { currentUser } from '@/constants/session'
@@ -18,6 +19,16 @@ export function Header({
   onToggle: () => void
 }) {
   const { data, markNotificationsRead, openReportView, openReviewView, openEventView } = useWorkspace()
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const accountName = user?.name ?? currentUser.name
+  const accountMeta = user?.email ?? currentUser.role
+  const initials = accountName
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const unread = data?.notifications.some((item) => item.unread) ?? false
@@ -142,21 +153,26 @@ export function Header({
       <Dropdown
         trigger={({ toggle, open }) => (
           <button type="button" className="profile-button" aria-expanded={open} aria-label="Account menu" onClick={toggle}>
-            <span className="avatar">{currentUser.initials}</span>
+            <span className="avatar">{initials}</span>
             <span className="profile-copy">
-              <strong>{currentUser.name}</strong>
-              <span>{currentUser.role}</span>
+              <strong>{accountName}</strong>
+              <span>{accountMeta}</span>
             </span>
             <ChevronDown size={14} />
           </button>
         )}
       >
         <div className="dropdown-item">
-          {currentUser.name}
-          <span className="menu-meta">{currentUser.role}</span>
+          {accountName}
+          <span className="menu-meta">{accountMeta}</span>
         </div>
         <DropdownItem
-          onSelect={() => toast.message('This session stays on this device. Sign-in is not connected.')}
+          onSelect={() => {
+            void logout().then(() => {
+              toast.success('Signed out')
+              navigate('/login', { replace: true })
+            })
+          }}
         >
           Sign out
         </DropdownItem>

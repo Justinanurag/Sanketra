@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
-import { Button } from '@/components/ui/Button'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { SafetyReportActions } from '@/features/reports/SafetyReportActions'
 import { StatusBadge } from '@/components/status/StatusBadge'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import { DashboardCharts } from '@/features/dashboard/DashboardCharts'
@@ -10,7 +10,7 @@ import { formatDate } from '@/lib/format'
 import type { SafetyReport } from '@/types/domain'
 
 export function DashboardPage() {
-  const { data, openReportForm, openReportView } = useWorkspace()
+  const { data, openReportView } = useWorkspace()
   if (!data) return null
   const metrics = buildMetrics(data)
   const recent = [...data.reports].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).slice(0, 5)
@@ -32,9 +32,7 @@ export function DashboardPage() {
       <PageHeader
         title="Safety intelligence"
         description="Precursor reports, barrier condition, and the reviews still waiting on a safety officer."
-        actions={
-          <Button onClick={() => openReportForm('new')}>Create safety report</Button>
-        }
+        actions={<SafetyReportActions />}
       />
       <section className="metric-grid" aria-label="Register summary">
         <Metric label="Safety reports" value={metrics.totalReports} note="Current register" />
