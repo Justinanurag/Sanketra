@@ -72,7 +72,7 @@ const arrayFields = new Set<keyof ExtractedReport>(['correctiveActions', 'preven
 const labels: { field: keyof ExtractedReport; names: string[] }[] = [
   { field: 'incidentTitle', names: ['incident title', 'report title', 'title', 'subject'] },
   { field: 'incidentId', names: ['incident id', 'reference number', 'reference no', 'report number', 'incident number'] },
-  { field: 'incidentDate', names: ['incident date', 'date of incident', 'date and time', 'occurrence date', 'date'] },
+  { field: 'incidentDate', names: ['incident date', 'date of incident', 'date and time', 'date time', 'occurrence date', 'date'] },
   { field: 'incidentTime', names: ['incident time', 'time of incident', 'time'] },
   { field: 'reportedDate', names: ['reported date', 'date reported'] },
   { field: 'location', names: ['incident location', 'location', 'site', 'area'] },
@@ -98,11 +98,21 @@ const labels: { field: keyof ExtractedReport; names: string[] }[] = [
   { field: 'recommendations', names: ['recommendations'] },
   { field: 'potentialSeverity', names: ['potential severity', 'actual severity', 'severity', 'risk level'] },
   { field: 'evidence', names: ['evidence description', 'evidence', 'investigation findings'] },
-  { field: 'lessonsLearned', names: ['missing safety controls', 'lessons learned'] },
+  { field: 'lessonsLearned', names: ['historical focus', 'missing safety controls', 'lessons learned'] },
 ]
 
+const looseSingleWords = new Set(['title', 'location', 'description', 'hazard'])
+
+function labelPattern(name: string) {
+  const tokens = normalize(name).split(' ').filter(Boolean)
+  const body = tokens.map((token) => token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('(?:\\s*(?:&|and|/)\\s+|\\s+)')
+  const loose = tokens.length > 1 || looseSingleWords.has(tokens[0] ?? '')
+  const separator = loose ? '(?:\\s*[:\\-–|]\\s*|\\s+|$)' : '(?:\\s*[:\\-–|]\\s*|\\s{2,}|$)'
+  return new RegExp(`^${body}${separator}(.*)$`, 'i')
+}
+
 const orderedLabels = labels
-  .flatMap((entry) => entry.names.map((name) => ({ field: entry.field, name })))
+  .flatMap((entry) => entry.names.map((name) => ({ field: entry.field, name, pattern: labelPattern(name) })))
   .sort((a, b) => b.name.length - a.name.length)
 
 const modelSchema = z.object({
@@ -176,15 +186,10 @@ function cleanList(value: string) {
 
 function matchLabel(line: string) {
   const trimmed = line.trim()
-  const lower = trimmed.toLowerCase()
+  if (!trimmed) return null
   for (const entry of orderedLabels) {
-    if (lower === entry.name) return { field: entry.field, rest: '' }
-    for (const separator of [':', '-', '–']) {
-      const prefix = `${entry.name}${separator}`
-      if (lower.startsWith(prefix)) {
-        return { field: entry.field, rest: trimmed.slice(prefix.length).trim() }
-      }
-    }
+    const matched = trimmed.match(entry.pattern)
+    if (matched) return { field: entry.field, rest: matched[1]?.trim() ?? '' }
   }
   return null
 }
@@ -220,6 +225,14 @@ export function parseLabeledReport(text: string): ExtractedReport {
     } else {
       report[field] = joined as never
     }
+  }
+
+  const heading = text.match(/(?:^|\n)\s*([A-Za-z]{2,}-\d+)\s*[—–-]\s*([^\n]+)/)
+  if (heading) {
+    const reference = heading[1].trim()
+    const headingTitle = heading[2].trim()
+    if (!report.incidentId && appearsIn(text, reference)) report.incidentId = reference
+    if (!report.incidentTitle && headingTitle && appearsIn(text, headingTitle)) report.incidentTitle = headingTitle
   }
   return report
 }
