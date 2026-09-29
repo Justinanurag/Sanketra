@@ -16,9 +16,28 @@ import { connectDatabase } from './config/dbConnection';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const allowedOrigins = [
+  ...new Set(
+    [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'https://sanketra-qqmi.vercel.app',
+      ...(process.env.FRONTEND_ORIGIN || '').split(','),
+    ]
+      .map((value) => value.trim().replace(/\/$/, ''))
+      .filter(Boolean),
+  ),
+];
+
 // Middleware
 app.use(cors({
-  origin: (process.env.FRONTEND_ORIGIN || 'http://localhost:5173').split(','),
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(null, false);
+  },
   credentials: true,
 }));
 

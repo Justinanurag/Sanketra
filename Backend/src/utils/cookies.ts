@@ -4,10 +4,11 @@ export const ACCESS_COOKIE = 'sanketra_access'
 export const REFRESH_COOKIE = 'sanketra_refresh'
 
 function base(): CookieOptions {
+  const production = process.env.NODE_ENV === 'production'
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: production,
+    sameSite: production ? 'none' : 'lax',
     path: '/',
   }
 }
