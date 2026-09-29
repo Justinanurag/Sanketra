@@ -1,19 +1,6 @@
 import type { MonthlyPoint, WorkspaceData } from '@/types/domain'
 import { monthLabel } from '@/lib/format'
 
-const ARCHIVE: MonthlyPoint[] = [
-  { month: 'Oct 25', reports: 16, high: 2 },
-  { month: 'Nov 25', reports: 19, high: 3 },
-  { month: 'Dec 25', reports: 14, high: 1 },
-  { month: 'Jan 26', reports: 17, high: 2 },
-  { month: 'Feb 26', reports: 15, high: 2 },
-  { month: 'Mar 26', reports: 21, high: 4 },
-  { month: 'Apr 26', reports: 18, high: 3 },
-  { month: 'May 26', reports: 20, high: 2 },
-  { month: 'Jun 26', reports: 16, high: 3 },
-  { month: 'Jul 26', reports: 19, high: 2 },
-]
-
 function countBy<T extends string>(values: T[], order: readonly T[]) {
   return order.map((key) => ({
     key,
@@ -22,15 +9,19 @@ function countBy<T extends string>(values: T[], order: readonly T[]) {
 }
 
 export function reportingTrend(reports: WorkspaceData['reports']): MonthlyPoint[] {
-  const recent = ['Aug 26', 'Sep 26'].map((month) => {
+  const now = new Date()
+  const points: MonthlyPoint[] = []
+  for (let offset = 5; offset >= 0; offset -= 1) {
+    const date = new Date(now.getFullYear(), now.getMonth() - offset, 1)
+    const month = monthLabel(date.toISOString())
     const rows = reports.filter((report) => monthLabel(report.occurredAt) === month)
-    return {
+    points.push({
       month,
       reports: rows.length,
       high: rows.filter((report) => report.sifPotential === 'high').length,
-    }
-  })
-  return [...ARCHIVE, ...recent]
+    })
+  }
+  return points
 }
 
 export function buildMetrics(data: WorkspaceData) {
@@ -44,12 +35,17 @@ export function buildMetrics(data: WorkspaceData) {
   return {
     totalReports: data.reports.length,
     highSif: data.reports.filter((report) => report.sifPotential === 'high').length,
-    criticalBarriers: data.barriers.filter((barrier) => barrier.critical && barrier.status !== 'present').length,
+    criticalBarriers: data.reports.filter((report) =>
+      report.barrierStatus === 'absent' || report.barrierStatus === 'ineffective' || report.barrierStatus === 'bypassed',
+    ).length,
     openReviews: data.reports.filter(
       (report) => report.reviewStatus === 'needs_review' || report.reviewStatus === 'in_review',
     ).length,
-    recurringHazards: data.hazards.filter((hazard) => hazard.recurring).length,
-    cctvEvents: data.detections.length,
+    recurringHazards: [...hazardCounts.values()].filter((count) => count > 1).length,
+    cctvEvents: data.detections.filter((event) => {
+      const video = data.videos.find((item) => item.id === event.videoId)
+      return !!video?.reportId && data.reports.some((report) => report.id === video.reportId)
+    }).length,
     monthly: reportingTrend(data.reports),
     sif: countBy(
       data.reports.map((report) => report.sifPotential),
@@ -59,7 +55,7 @@ export function buildMetrics(data: WorkspaceData) {
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count),
     barriers: countBy(
-      data.barriers.map((barrier) => barrier.status),
+      data.reports.map((report) => report.barrierStatus),
       ['present', 'absent', 'ineffective', 'bypassed', 'unknown'],
     ),
     reviews: countBy(

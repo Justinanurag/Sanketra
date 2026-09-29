@@ -1,7 +1,8 @@
 import { workspaceSeed } from '@/data/mock'
 import { apiBase } from '@/services/http'
+import { evaluateSif } from '@/lib/sifRules'
 import { buildMetrics } from '@/lib/metrics'
-import type { ReportDraft, SafetyReport, WorkspaceData } from '@/types/domain'
+import { barrierConditions, sifPotentials, type ReportDraft, type SafetyReport, type SifEvaluation, type WorkspaceData } from '@/types/domain'
 
 const wait = <T,>(value: T, delay = 280) =>
   new Promise<T>((resolve) => {
@@ -10,6 +11,70 @@ const wait = <T,>(value: T, delay = 280) =>
 
 function apiUrl() {
   return apiBase()
+}
+
+function storedAnalysis(value: unknown, fallback: SifEvaluation): SifEvaluation {
+  const parsed = typeof value === 'string' ? safeJson(value) : value
+  if (!parsed || typeof parsed !== 'object') return fallback
+  const record = parsed as Partial<SifEvaluation>
+  if (!record.potential || !sifPotentials.includes(record.potential) || !Array.isArray(record.criteria)) return fallback
+  return {
+    potential: record.potential,
+    rationale: typeof record.rationale === 'string' ? record.rationale : fallback.rationale,
+    criteria: record.criteria,
+  }
+}
+
+function safeJson(value: string) {
+  try {
+    return JSON.parse(value) as unknown
+  } catch {
+    return null
+  }
+}
+
+function mapStoredReport(dbReport: Record<string, unknown>): SafetyReport {
+  const barrierStatus = barrierConditions.find((status) => status === dbReport.barrier_status) ?? 'unknown'
+  const rule = evaluateSif({
+    hazardName: String(dbReport.hazard_name ?? ''),
+    energySource: String(dbReport.energy_source ?? ''),
+    humanExposure: String(dbReport.human_exposure ?? ''),
+    barrierName: String(dbReport.barrier_name ?? ''),
+    barrierStatus,
+    consequence: String(dbReport.consequence ?? ''),
+  })
+  const storedPotential = sifPotentials.find((item) => item === dbReport.sif_potential)
+  const analysis = storedAnalysis(dbReport.analysis, rule)
+  const decision = typeof dbReport.latest_decision === 'string' ? dbReport.latest_decision : ''
+  const reviewStatus =
+    decision === 'approved' || decision === 'edited' ? 'approved' : decision === 'rejected' ? 'rejected' : 'needs_review'
+  return {
+    id: String(dbReport.id),
+    title: String(dbReport.title ?? ''),
+    description: String(dbReport.description ?? ''),
+    type: (dbReport.report_type === 'Unsafe Act' || dbReport.report_type === 'Unsafe Condition' ? dbReport.report_type : 'Near Miss'),
+    occurredAt: String(dbReport.incident_date ?? ''),
+    location: String(dbReport.site_location ?? ''),
+    reporter: 'Safety officer',
+    reporterRole: 'Safety Officer',
+    hazardId: null,
+    hazardName: String(dbReport.hazard_name ?? ''),
+    energySource: String(dbReport.energy_source ?? ''),
+    humanExposure: String(dbReport.human_exposure ?? ''),
+    barrierId: null,
+    barrierName: String(dbReport.barrier_name ?? ''),
+    barrierStatus,
+    consequence: String(dbReport.consequence ?? ''),
+    notes: String(dbReport.notes ?? ''),
+    reviewStatus,
+    sifPotential: storedPotential ?? analysis.potential,
+    analysis,
+    originalAnalysis: analysis,
+    recommendations: [],
+    originalRecommendations: [],
+    evidencePhrases: [],
+    extractionConfidence: null,
+  }
 }
 
 export async function loadWorkspace(): Promise<WorkspaceData> {
@@ -21,33 +86,7 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
     if (res.ok) {
       const dbReports = await res.json()
       if (!Array.isArray(dbReports)) return wait(seed)
-      const mappedReports: SafetyReport[] = dbReports.map((dbReport: Record<string, string>) => ({
-        id: String(dbReport.id),
-        title: dbReport.title,
-        description: dbReport.description,
-        type: (dbReport.report_type || 'Near Miss') as SafetyReport['type'],
-        occurredAt: dbReport.incident_date,
-        location: dbReport.site_location || '',
-        reporter: 'Integration User',
-        reporterRole: 'Safety Officer',
-        hazardId: null,
-        hazardName: dbReport.hazard_name || '',
-        energySource: dbReport.energy_source || '',
-        humanExposure: dbReport.human_exposure || '',
-        barrierId: null,
-        barrierName: dbReport.barrier_name || '',
-        barrierStatus: (dbReport.barrier_status || 'unknown') as SafetyReport['barrierStatus'],
-        consequence: dbReport.consequence || '',
-        notes: dbReport.notes || '',
-        reviewStatus: 'needs_review',
-        sifPotential: 'undetermined',
-        analysis: { potential: 'undetermined', rationale: 'Pending AI analysis', criteria: [] },
-        originalAnalysis: { potential: 'undetermined', rationale: 'Pending AI analysis', criteria: [] },
-        recommendations: [],
-        originalRecommendations: [],
-        evidencePhrases: [],
-        extractionConfidence: null,
-      }))
+      const mappedReports: SafetyReport[] = dbReports.map((dbReport) => mapStoredReport(dbReport as Record<string, unknown>))
       if (mappedReports.length) seed.reports = mappedReports
     }
   } catch {

@@ -33,7 +33,7 @@ export function DashboardCharts({ metrics }: { metrics: Metrics }) {
           <header className="panel-header">
             <div>
               <h2>Reporting volume</h2>
-              <p>Archive totals by month. August and September follow the current register.</p>
+              <p>Reports in the last six months, counted from the dates on file.</p>
             </div>
           </header>
           <ChartFrame empty={!metrics.monthly.length}>
@@ -42,7 +42,7 @@ export function DashboardCharts({ metrics }: { metrics: Metrics }) {
                 <CartesianGrid stroke="#e1e5ea" vertical={false} />
                 <XAxis dataKey="month" tick={axis} axisLine={false} tickLine={false} interval={0} angle={-40} textAnchor="end" height={54} />
                 <YAxis tick={axis} axisLine={false} tickLine={false} width={28} allowDecimals={false} />
-                <Tooltip contentStyle={tooltipStyle} />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: '#f1f5f9' }} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Bar dataKey="reports" name="Reports" fill="#1e4f86" radius={[2, 2, 0, 0]} isAnimationActive={animation} />
                 <Bar dataKey="high" name="High SIF" fill="#a3262a" radius={[2, 2, 0, 0]} isAnimationActive={animation} />
@@ -54,7 +54,7 @@ export function DashboardCharts({ metrics }: { metrics: Metrics }) {
           <header className="panel-header">
             <div>
               <h2>SIF potential</h2>
-              <p>Rule results in the current register. Not accident probability.</p>
+              <p>Rule result on each report in the register. Not an accident probability.</p>
             </div>
           </header>
           <ChartFrame empty={!sif.some((item) => item.count)}>
@@ -63,7 +63,7 @@ export function DashboardCharts({ metrics }: { metrics: Metrics }) {
                 <CartesianGrid stroke="#e1e5ea" vertical={false} />
                 <XAxis dataKey="name" tick={axis} axisLine={false} tickLine={false} />
                 <YAxis tick={axis} axisLine={false} tickLine={false} width={28} allowDecimals={false} />
-                <Tooltip contentStyle={tooltipStyle} />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: '#f1f5f9' }} />
                 <Bar dataKey="count" name="Reports" fill="#1e4f86" radius={[2, 2, 0, 0]} isAnimationActive={animation} />
               </BarChart>
             </ResponsiveContainer>
@@ -74,8 +74,8 @@ export function DashboardCharts({ metrics }: { metrics: Metrics }) {
         <section className="panel">
           <header className="panel-header">
             <div>
-              <h2>Hazard categories</h2>
-              <p>Reports in the register, grouped by hazard category.</p>
+              <h2>Hazards named</h2>
+              <p>Grouped from the hazard written on each report.</p>
             </div>
           </header>
           <ChartFrame empty={!metrics.hazards.length}>
@@ -84,7 +84,7 @@ export function DashboardCharts({ metrics }: { metrics: Metrics }) {
                 <CartesianGrid stroke="#e1e5ea" horizontal={false} />
                 <XAxis type="number" tick={axis} axisLine={false} tickLine={false} allowDecimals={false} />
                 <YAxis type="category" dataKey="name" tick={axis} axisLine={false} tickLine={false} width={120} />
-                <Tooltip contentStyle={tooltipStyle} />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: '#f1f5f9' }} />
                 <Bar dataKey="count" name="Reports" fill="#1e4f86" barSize={12} radius={[0, 2, 2, 0]} isAnimationActive={animation} />
               </BarChart>
             </ResponsiveContainer>
@@ -94,7 +94,7 @@ export function DashboardCharts({ metrics }: { metrics: Metrics }) {
           <header className="panel-header">
             <div>
               <h2>Barrier status</h2>
-              <p>Current condition of controls in the barrier register.</p>
+              <p>The barrier condition written on the reports.</p>
             </div>
           </header>
           <ChartFrame empty={!barriers.some((item) => item.count)}>
@@ -103,7 +103,7 @@ export function DashboardCharts({ metrics }: { metrics: Metrics }) {
                 <CartesianGrid stroke="#e1e5ea" vertical={false} />
                 <XAxis dataKey="name" tick={axis} axisLine={false} tickLine={false} interval={0} />
                 <YAxis tick={axis} axisLine={false} tickLine={false} width={28} allowDecimals={false} />
-                <Tooltip contentStyle={tooltipStyle} />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: '#f1f5f9' }} />
                 <Bar dataKey="count" name="Barriers" fill="#8a5a08" radius={[2, 2, 0, 0]} isAnimationActive={animation} />
               </BarChart>
             </ResponsiveContainer>

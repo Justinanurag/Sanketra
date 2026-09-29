@@ -1,17 +1,17 @@
 import { useState } from 'react'
+import { Camera, Clock, MapPin } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { StatusBadge } from '@/components/status/StatusBadge'
 import { Button } from '@/components/ui/Button'
 import { Callout } from '@/components/ui/Callout'
-import { DataTable, type Column } from '@/components/ui/DataTable'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { UploadCctvModal } from '@/features/cctv/UploadCctvModal'
+import { labelOf } from '@/constants/labels'
 import { useWorkspace } from '@/hooks/useWorkspace'
 import { confirmAction } from '@/lib/dialogs'
 import { formatDateTime } from '@/lib/format'
-import { labelOf } from '@/constants/labels'
-import type { CctvEvent, CctvVideo } from '@/types/domain'
+import { cx } from '@/lib/cx'
 
 export function CctvPage() {
   const { data, previews, deleteRecord, openReportView } = useWorkspace()
@@ -22,59 +22,64 @@ export function CctvPage() {
   const detections = data.detections.filter((event) => event.videoId === selected?.id)
   const preview = selected ? previews[selected.id] : undefined
 
-  const columns: Column<CctvVideo>[] = [
-    { id: 'file', header: 'File', sortValue: (row) => row.filename, render: (row) => <span className="row-title">{row.filename}</span> },
-    { id: 'camera', header: 'Camera', sortValue: (row) => row.camera, render: (row) => row.camera },
-    { id: 'location', header: 'Location', render: (row) => row.location },
-    { id: 'status', header: 'Status', render: (row) => <StatusBadge domain="video" value={row.status} /> },
-    { id: 'kind', header: 'Kind', render: (row) => labelOf(row.mediaKind) },
-    { id: 'report', header: 'Report', render: (row) => row.reportId ? (
-      <button type="button" className="mono" style={{ background: 'transparent', border: 0, padding: 0, color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }} onClick={(e) => { e.stopPropagation(); openReportView(row.reportId!); }}>
-        {row.reportId}
-      </button>
-    ) : '—' },
-    { id: 'when', header: 'Uploaded', sortValue: (row) => row.uploadedAt, render: (row) => formatDateTime(row.uploadedAt) },
-  ]
-
-  const detectionColumns: Column<CctvEvent>[] = [
-    { id: 'time', header: 'Time', render: (row) => <span className="mono">{row.timestamp}</span> },
-    { id: 'object', header: 'Object', render: (row) => row.object },
-    { id: 'event', header: 'Event', render: (row) => row.eventType },
-    { id: 'zone', header: 'Zone', render: (row) => row.zone },
-    { id: 'dwell', header: 'Dwell', render: (row) => (row.dwellSeconds === null ? '—' : `${row.dwellSeconds}s`) },
-    { id: 'confidence', header: 'Detection confidence', render: (row) => (row.confidence === null ? '—' : row.confidence.toFixed(2)) },
-    { id: 'origin', header: 'Source', render: (row) => <StatusBadge domain="origin" value={row.origin} /> },
-  ]
-
   return (
     <div className="stack">
       <PageHeader
         title="CCTV evidence"
-        description="Optional visual evidence. Computer vision can describe objects. It does not decide SIF potential."
-        actions={<Button onClick={() => setOpen(true)}>Upload CCTV</Button>}
+        description="Optional camera evidence for a report. Object detection describes what is in the frame. It does not decide SIF potential."
+        actions={<Button onClick={() => setOpen(true)}>Upload evidence</Button>}
       />
-      <Callout tone="info" title="CCTV evidence is optional">
-        A missing camera, a blind spot, or an unprocessed file is not proof that an exposure did not happen. No facial identity processing is performed.
+      <Callout tone="info" title="A camera is not required">
+        A missing view, a blind spot, or a file that has not been processed is not proof that nobody was exposed. Faces are not identified.
       </Callout>
-      <section className="panel">
-        <DataTable
-          columns={columns}
-          rows={data.videos}
-          getRowId={(row) => row.id}
-          onRowClick={(row) => setSelectedId(row.id)}
-          label="CCTV files"
-          emptyTitle="No CCTV evidence"
-          emptyDescription="Upload a clip when a camera can help check a report. Reports can be reviewed without one."
-          emptyAction={<Button onClick={() => setOpen(true)}>Upload CCTV</Button>}
-        />
-      </section>
-      {selected ? (
-        <div className="grid-2">
-          <section className="panel">
+      {data.videos.length === 0 || !selected ? (
+        <section className="panel">
+          <EmptyState
+            title="No CCTV evidence"
+            description="Upload a clip when a camera can help check a report. Reports can be reviewed without one."
+            action={<Button onClick={() => setOpen(true)}>Upload evidence</Button>}
+          />
+        </section>
+      ) : (
+        <div className="cctv-layout">
+          <section className="panel cctv-library" aria-label="Evidence files">
+            <header className="panel-header">
+              <div>
+                <h2>Files</h2>
+                <p>{data.videos.length} in this register</p>
+              </div>
+            </header>
+            <div className="cctv-clips">
+              {data.videos.map((video) => (
+                <button
+                  key={video.id}
+                  type="button"
+                  className={cx('cctv-clip', video.id === selected.id && 'is-selected')}
+                  aria-pressed={video.id === selected.id}
+                  onClick={() => setSelectedId(video.id)}
+                >
+                  <span className="cctv-clip-top">
+                    <strong>{video.camera}</strong>
+                    <StatusBadge domain="video" value={video.status} />
+                  </span>
+                  <span className="cctv-clip-file">{video.filename}</span>
+                  <span className="cctv-clip-meta">
+                    <MapPin size={12} aria-hidden />
+                    {video.location}
+                  </span>
+                  <span className="cctv-clip-meta">
+                    <Clock size={12} aria-hidden />
+                    {video.duration} · {formatDateTime(video.uploadedAt)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+          <section className="panel cctv-stage">
             <header className="panel-header">
               <div>
                 <h2>{selected.camera}</h2>
-                <p>{selected.location} · {selected.duration}</p>
+                <p>{selected.location}</p>
               </div>
               <Button
                 variant="danger"
@@ -88,6 +93,7 @@ export function CctvPage() {
                   })
                   if (!confirmed) return
                   deleteRecord('videos', selected.id)
+                  setSelectedId('')
                   toast.success('Evidence removed')
                 }}
               >
@@ -99,28 +105,74 @@ export function CctvPage() {
               {preview && selected.mediaKind === 'image' ? <img src={preview} alt={selected.filename} /> : null}
               {!preview ? (
                 <div className="video-meta">
+                  <Camera size={28} aria-hidden />
                   <strong>{selected.simulated ? 'Sample record' : 'No playable file in this session'}</strong>
                   <span>{selected.filename}</span>
                 </div>
               ) : null}
             </div>
-            <p className="panel-note" style={{ marginTop: 12 }}>{selected.note}</p>
-          </section>
-          <section className="panel">
-            <header className="panel-header">
+            <dl className="cctv-facts">
               <div>
-                <h2>Detection events</h2>
-                <p>AI-detected rows are model output. Human-verified rows were accepted by an officer.</p>
+                <dt>Kind</dt>
+                <dd>{labelOf(selected.mediaKind)}</dd>
               </div>
-            </header>
-            {detections.length ? (
-              <DataTable columns={detectionColumns} rows={detections} getRowId={(row) => row.id} pageSize={6} label="Detections" />
-            ) : (
-              <EmptyState title="No detection events" description="This file is stored. Nothing has been detected, and SIF potential is unchanged." />
-            )}
+              <div>
+                <dt>Duration</dt>
+                <dd>{selected.duration}</dd>
+              </div>
+              <div>
+                <dt>Status</dt>
+                <dd><StatusBadge domain="video" value={selected.status} /></dd>
+              </div>
+              <div>
+                <dt>Uploaded</dt>
+                <dd>{formatDateTime(selected.uploadedAt)}</dd>
+              </div>
+              <div>
+                <dt>Report</dt>
+                <dd>
+                  {selected.reportId ? (
+                    <button type="button" className="text-link" onClick={() => openReportView(selected.reportId!)}>
+                      {selected.reportId}
+                    </button>
+                  ) : (
+                    'Not linked'
+                  )}
+                </dd>
+              </div>
+            </dl>
+            <p className="panel-note">{selected.note}</p>
+            <div className="cctv-detections">
+              <header>
+                <h3>Detections</h3>
+                <p>AI-detected rows are model output. Human-verified rows were accepted by an officer.</p>
+              </header>
+              {detections.length ? (
+                <ol className="detection-list">
+                  {detections.map((event) => (
+                    <li key={event.id}>
+                      <div className="detection-top">
+                        <span className="mono">{event.timestamp}</span>
+                        <StatusBadge domain="origin" value={event.origin} />
+                      </div>
+                      <strong>{event.object} · {event.eventType}</strong>
+                      <p>{event.zone}</p>
+                      <p className="detection-stats">
+                        {event.dwellSeconds === null ? 'Dwell not measured' : `${event.dwellSeconds}s in view`}
+                        {' · '}
+                        {event.confidence === null ? 'Confidence not stated' : `${Math.round(event.confidence * 100)}% detection confidence`}
+                      </p>
+                      <p className="panel-note">{event.note}</p>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <EmptyState title="No detection events" description="This file is stored. Nothing has been detected, and SIF potential is unchanged." />
+              )}
+            </div>
           </section>
         </div>
-      ) : null}
+      )}
       <UploadCctvModal open={open} onClose={() => setOpen(false)} />
     </div>
   )

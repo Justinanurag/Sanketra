@@ -72,6 +72,25 @@ function prefer(existing: string | null | undefined, extracted: string | null) {
   return current || extracted
 }
 
+export function classifySafetyReport(input: {
+  hazardName?: string | null
+  energySource?: string | null
+  humanExposure?: string | null
+  barrierName?: string | null
+  barrierStatus?: string | null
+  consequence?: string | null
+}) {
+  const status = barrierStatuses.find((item) => item === input.barrierStatus) ?? 'unknown'
+  return evaluate({
+    hazardName: input.hazardName?.trim() ?? '',
+    energySource: input.energySource?.trim() ?? '',
+    humanExposure: input.humanExposure?.trim() ?? '',
+    barrierName: input.barrierName?.trim() ?? '',
+    barrierStatus: status,
+    consequence: input.consequence?.trim() ?? '',
+  })
+}
+
 function evaluate(input: {
   hazardName: string
   energySource: string

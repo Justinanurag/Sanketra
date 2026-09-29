@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { query } from '../config/db';
 import { z } from 'zod';
+import { classifySafetyReport } from '../services/reportAnalysis';
 
 const createReportSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -20,14 +21,15 @@ const createReportSchema = z.object({
 export const createReport = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedData = createReportSchema.parse(req.body);
+    const analysis = classifySafetyReport(validatedData);
     
     const result = await query(
       `INSERT INTO reports (
         title, description, report_type, site_location, incident_date, 
         hazard_name, energy_source, human_exposure, barrier_name, barrier_status, 
-        consequence, notes
+        consequence, notes, sif_potential, analysis
       )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb) RETURNING *`,
       [
         validatedData.title,
         validatedData.description,
@@ -40,7 +42,9 @@ export const createReport = async (req: Request, res: Response, next: NextFuncti
         validatedData.barrierName,
         validatedData.barrierStatus,
         validatedData.consequence,
-        validatedData.notes
+        validatedData.notes,
+        analysis.potential,
+        JSON.stringify(analysis),
       ]
     );
 
@@ -56,7 +60,16 @@ export const createReport = async (req: Request, res: Response, next: NextFuncti
 
 export const getReports = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await query('SELECT * FROM reports ORDER BY created_at DESC');
+    const result = await query(
+      `SELECT r.*, (
+         SELECT decision FROM reviews
+         WHERE report_id = r.id
+         ORDER BY submitted_at DESC
+         LIMIT 1
+       ) AS latest_decision
+       FROM reports r
+       ORDER BY r.created_at DESC`,
+    );
     res.status(200).json(result.rows);
   } catch (error) {
     next(error);

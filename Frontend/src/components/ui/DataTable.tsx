@@ -115,7 +115,7 @@ export function DataTable<T>({
               {columns.map((column) => {
                 const active = sort?.id === column.id
                 return (
-                  <th key={column.id} style={{ width: column.width }} aria-sort={active ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                  <th key={column.id} className={column.id === columns[0]?.id ? 'cell-main' : undefined} style={{ width: column.width }} aria-sort={active ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
                     {column.sortValue ? (
                       <button
                         type="button"
@@ -172,7 +172,7 @@ export function DataTable<T>({
                     </td>
                   ) : null}
                   {columns.map((column) => (
-                    <td key={column.id}>{column.render(row)}</td>
+                    <td key={column.id} className={column.id === columns[0]?.id ? 'cell-main' : undefined}>{column.render(row)}</td>
                   ))}
                 </tr>
               )

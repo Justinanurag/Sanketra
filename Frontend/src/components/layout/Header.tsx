@@ -53,7 +53,7 @@ export function Header({
       </button>
       <Breadcrumbs />
       <div className="topbar-spacer" />
-      <div className="top-search search-field" style={{ width: 240 }}>
+      <div className="top-search search-field">
         <Search size={15} aria-hidden />
         <input
           className="input"
