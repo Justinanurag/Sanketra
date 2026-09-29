@@ -79,7 +79,7 @@ export const getReportById = async (req: Request, res: Response, next: NextFunct
   }
 };
 
-import fetch from 'node-fetch';
+import { AnalysisConfigError, analyzeReportWithGemini } from '../services/reportAnalysis';
 
 export const analyzeReport = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -93,28 +93,7 @@ export const analyzeReport = async (req: Request, res: Response, next: NextFunct
     }
     const report = result.rows[0];
 
-    // 2. Call AI Service
-    const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000/api/analyze';
-    const aiResponse = await fetch(aiServiceUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: report.id.toString(),
-        title: report.title,
-        description: report.description,
-        report_type: report.report_type,
-        location: report.site_location
-      })
-    });
-
-    if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error('AI Service Error:', errText);
-      res.status(502).json({ error: 'Failed to analyze report via AI service' });
-      return;
-    }
-
-    const aiData = await aiResponse.json();
+    const aiData = await analyzeReportWithGemini(report);
 
     // 3. Update the report in the database with AI findings
     // In a full implementation, we might store this in a separate 'safety_event_drafts' table
@@ -145,6 +124,15 @@ export const analyzeReport = async (req: Request, res: Response, next: NextFunct
 
     res.status(200).json(aiData);
   } catch (error) {
+    if (error instanceof AnalysisConfigError) {
+      res.status(503).json({ error: error.message });
+      return;
+    }
+    if (error instanceof Error && error.message.startsWith('Gemini request failed')) {
+      console.error(error.message);
+      res.status(502).json({ error: 'Failed to analyze report' });
+      return;
+    }
     next(error);
   }
 };
