@@ -34,10 +34,21 @@ function ensurePdfDom() {
   if (typeof target.Path2D === 'undefined') target.Path2D = class Path2D {}
 }
 
-async function loadPdfParser() {
-  ensurePdfDom()
-  const loaded = await import('pdf-parse')
-  return loaded.PDFParse
+let pdfParser: Promise<typeof import('pdf-parse').PDFParse> | null = null
+
+function loadPdfParser() {
+  if (!pdfParser) {
+    pdfParser = (async () => {
+      ensurePdfDom()
+      const [{ PDFParse }, worker] = await Promise.all([import('pdf-parse'), import('pdf-parse/worker')])
+      PDFParse.setWorker(worker.getData())
+      return PDFParse
+    })().catch((error: unknown) => {
+      pdfParser = null
+      throw error
+    })
+  }
+  return pdfParser
 }
 
 async function readPdf(data: Buffer) {
