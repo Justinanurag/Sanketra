@@ -3,6 +3,21 @@ import { prismaClient } from '../config/dbConnection'
 import { ACCESS_COOKIE } from '../utils/cookies'
 import { verifyAccessToken } from '../utils/jwt'
 
+export interface AuthUser {
+  id: string
+  name: string
+  email: string
+  phone: string
+}
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: AuthUser
+    }
+  }
+}
+
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const token = req.cookies?.[ACCESS_COOKIE]
   if (!token) {
